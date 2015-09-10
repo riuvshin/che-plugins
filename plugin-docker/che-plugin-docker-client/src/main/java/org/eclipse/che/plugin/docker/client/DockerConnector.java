@@ -12,17 +12,14 @@ package org.eclipse.che.plugin.docker.client;
 
 import com.google.common.io.CharStreams;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
-import com.sun.jna.ptr.LongByReference;
 
 import org.apache.commons.codec.binary.Base64;
 import org.eclipse.che.api.core.util.FileCleaner;
-import org.eclipse.che.api.core.util.SystemInfo;
 import org.eclipse.che.api.core.util.ValueHolder;
 import org.eclipse.che.commons.json.JsonHelper;
 import org.eclipse.che.commons.json.JsonNameConvention;
 import org.eclipse.che.commons.json.JsonParseException;
 import org.eclipse.che.commons.lang.Pair;
-import org.eclipse.che.commons.lang.Size;
 import org.eclipse.che.commons.lang.TarUtils;
 import org.eclipse.che.plugin.docker.client.connection.DockerConnection;
 import org.eclipse.che.plugin.docker.client.connection.DockerResponse;
@@ -50,7 +47,6 @@ import org.slf4j.LoggerFactory;
 
 import javax.inject.Inject;
 import javax.inject.Singleton;
-import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
@@ -58,21 +54,16 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.net.URI;
 import java.net.URLEncoder;
-import java.nio.charset.Charset;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 
 import static java.io.File.separatorChar;
-import static org.eclipse.che.plugin.docker.client.CLibraryFactory.getCLibrary;
 
 /**
  * Connects to the docker daemon.
@@ -117,29 +108,34 @@ public class DockerConnector {
                                                                   + separatorChar + "machines"
                                                                   + separatorChar + "default";
 
-    private final URI dockerDaemonUri;
-    private final DockerCertificates       dockerCertificates;
-    private final InitialAuthConfig        initialAuthConfig;
-    private final ExecutorService          executor;
-    private final Map<String, OOMDetector> oomDetectors;
+    private final URI                dockerDaemonUri;
+    private final DockerCertificates dockerCertificates;
+    private final InitialAuthConfig  initialAuthConfig;
+    private final ExecutorService    executor;
 
-    public DockerConnector(InitialAuthConfig initialAuthConfig) {
-        this(new DockerConnectorConfiguration(initialAuthConfig));
+    private final DockerOOMDetector  oomDetector;
+
+    public DockerConnector(InitialAuthConfig initialAuthConfig, DockerOOMDetector oomDetector) {
+        this(new DockerConnectorConfiguration(initialAuthConfig), oomDetector);
     }
 
-    public DockerConnector(URI dockerDaemonUri, DockerCertificates dockerCertificates, InitialAuthConfig initialAuthConfig) {
+    public DockerConnector(URI dockerDaemonUri,
+                           DockerCertificates dockerCertificates,
+                           InitialAuthConfig initialAuthConfig,
+                           DockerOOMDetector oomDetector) {
         this.dockerDaemonUri = dockerDaemonUri;
         this.dockerCertificates = dockerCertificates;
         this.initialAuthConfig = initialAuthConfig;
+        this.oomDetector = oomDetector;
         executor = Executors.newCachedThreadPool(new ThreadFactoryBuilder().setNameFormat("DockerApiConnector-%d").setDaemon(true).build());
-        oomDetectors = new ConcurrentHashMap<>();
     }
 
     @Inject
-    private DockerConnector(DockerConnectorConfiguration connectorConfiguration) {
+    private DockerConnector(DockerConnectorConfiguration connectorConfiguration, DockerOOMDetector oomDetector) {
         this(connectorConfiguration.getDockerDaemonUri(),
              connectorConfiguration.getDockerCertificates(),
-             connectorConfiguration.getAuthConfigs());
+             connectorConfiguration.getAuthConfigs(),
+             oomDetector);
     }
 
     /**
@@ -157,7 +153,8 @@ public class DockerConnector {
                 final String msg = CharStreams.toString(new InputStreamReader(response.getInputStream()));
                 throw new DockerException(String.format("Error response from docker API, status: %d, message: %s", status, msg), status);
             }
-            return JsonHelper.fromJson(response.getInputStream(), org.eclipse.che.plugin.docker.client.json.SystemInfo.class, null, FIRST_LETTER_LOWERCASE);
+            return JsonHelper.fromJson(response.getInputStream(), org.eclipse.che.plugin.docker.client.json.SystemInfo.class, null,
+                                       FIRST_LETTER_LOWERCASE);
         } catch (JsonParseException e) {
             throw new IOException(e.getMessage(), e);
         } finally {
@@ -264,7 +261,6 @@ public class DockerConnector {
         return doBuildImage(repository, tar, progressMonitor, dockerDaemonUri, authConfigs);
     }
 
-
     private String getBuildImageId(ProgressStatus progressStatus) {
         final String stream = progressStatus.getStream();
         if (stream != null && stream.startsWith("Successfully built ")) {
@@ -276,7 +272,6 @@ public class DockerConnector {
         }
         return null;
     }
-
 
     /**
      * Gets detailed information about docker image.
@@ -322,7 +317,6 @@ public class DockerConnector {
         doPush(repository, tag, registry, progressMonitor, dockerDaemonUri);
     }
 
-
     /**
      * See <a href="https://docs.docker.com/reference/api/docker_remote_api_v1.16/#create-an-image">Docker remote API # Create an
      * image</a>.
@@ -358,7 +352,7 @@ public class DockerConnector {
      * @throws IOException
      */
     public void stopContainer(String container, long timeout, TimeUnit timeunit) throws IOException {
-        stopOOMDetector(container);
+        oomDetector.stopDetection(container);
         final DockerConnection connection = openConnection(dockerDaemonUri);
         try {
             final List<Pair<String, ?>> headers = new ArrayList<>(2);
@@ -387,7 +381,7 @@ public class DockerConnector {
      * @throws IOException
      */
     public void killContainer(String container, int signal) throws IOException {
-        stopOOMDetector(container);
+        oomDetector.stopDetection(container);
         final DockerConnection connection = openConnection(dockerDaemonUri);
         try {
             final List<Pair<String, ?>> headers = new ArrayList<>(2);
@@ -416,7 +410,6 @@ public class DockerConnector {
     public void killContainer(String container) throws IOException {
         killContainer(container, 9);
     }
-
 
     /**
      * Removes container.
@@ -475,7 +468,6 @@ public class DockerConnector {
         }
     }
 
-
     /**
      * Gets detailed information about docker container.
      *
@@ -504,7 +496,6 @@ public class DockerConnector {
             connection.close();
         }
     }
-
 
     /**
      * Attaches to the container with specified id.
@@ -537,7 +528,6 @@ public class DockerConnector {
             connection.close();
         }
     }
-
 
     public String commit(String container, String repository, String tag, String comment, String author) throws IOException {
         // todo: pause container
@@ -586,7 +576,6 @@ public class DockerConnector {
             connection.close();
         }
     }
-
 
     public Exec createExec(String container, boolean detach, String... cmd) throws IOException {
         final DockerConnection connection = openConnection(dockerDaemonUri);
@@ -666,7 +655,6 @@ public class DockerConnector {
             connection.close();
         }
     }
-
 
     public ContainerProcesses top(String container, String... psArgs) throws IOException {
         final DockerConnection connection = openConnection(dockerDaemonUri);
@@ -1045,7 +1033,7 @@ public class DockerConnector {
                 }
             }
             if ((204 == status) || (200 == status)) {
-                startOOMDetector(container, startContainerLogProcessor);
+                oomDetector.startDetection(container, startContainerLogProcessor);
             }
         } finally {
             connection.close();
@@ -1066,7 +1054,6 @@ public class DockerConnector {
         }
     };
 
-
     protected DockerConnection openConnection(URI dockerDaemonUri) {
         if (isUnixSocketUri(dockerDaemonUri)) {
             return new UnixSocketConnection(dockerDaemonUri.getPath());
@@ -1075,218 +1062,11 @@ public class DockerConnector {
         }
     }
 
-
-    private boolean isUnixSocketUri(URI uri) {
+    static boolean isUnixSocketUri(URI uri) {
         return UNIX_SOCKET_SCHEME.equals(uri.getScheme());
     }
 
-
     private void createTarArchive(File tar, File... files) throws IOException {
         TarUtils.tarFiles(tar, 0, files);
-    }
-
-    // OOM detect
-
-    private void startOOMDetector(String container, LogMessageProcessor containerLogProcessor) {
-        if (needStartOOMDetector()) {
-            if (cgroupMount == null) {
-                LOG.warn("System doesn't support OOM events");
-                return;
-            }
-            final OOMDetector oomDetector = new OOMDetector(container, containerLogProcessor);
-            oomDetectors.put(container, oomDetector);
-            oomDetector.start();
-        }
-    }
-
-    private boolean needStartOOMDetector() {
-        if (isUnixSocketUri(dockerDaemonUri)) {
-            return true;
-        }
-        if (SystemInfo.isLinux()) {
-            final String dockerDaemonHost = dockerDaemonUri.getHost();
-            if ("localhost".equals(dockerDaemonHost) || "127.0.0.1".equals(dockerDaemonHost)) {
-                return true;
-            }
-        }
-        return false;
-    }
-
-    private void stopOOMDetector(String container) {
-        final OOMDetector oomDetector = oomDetectors.remove(container);
-        if (oomDetector != null) {
-            oomDetector.stop();
-        }
-    }
-
-
-    /*
-     * Need detect OOM errors and notify users about them. Without such notification if application is killed by oom-killer client often can
-     * see message "Killed" and there is no any why to see why. Unfortunately for now docker doesn't provide clear mechanism how to control
-     * OOM errors, with docker event mechanism can get something like that:
-     * {"status":"die","id":"dfdf82bd3881","from":"base:latest","time":1374067970}
-     * That is not enough.
-     * Found two ways how to control OOM errors.
-     *
-     *     1. With parsing output of 'dmesg' command
-     * ----
-     * andrew@andrey:~> dmesg | grep oom-killer
-     * [41313.629018] java invoked oom-killer: gfp_mask=0xd0, order=0, oom_score_adj=0
-     * [41631.391818] java invoked oom-killer: gfp_mask=0xd0, order=0, oom_score_adj=0
-     * ...
-     * -----
-     * Problem here is in timestamp format. Unfortunately dmesg doesn't provide real time correctly with -T option. Here is a piece of man
-     * page:
-     * -----
-     * -T, --ctime
-     *         Print human readable timestamps.  The timestamp could be inaccurate!
-     *
-     *         The time source used for the logs is not updated after system SUSPEND/RESUME.
-     * -----
-     * So it's complicated to detect time when oom-killer was activated and link its activity with failed docker container.
-     *
-     *     2. Usage of cgroup notification mechanism.
-     * Good article about this: https://access.redhat.com/documentation/en-US/Red_Hat_Enterprise_Linux/6/html/Resource_Management_Guide/sec-Using_the_Notification_API.html
-     */
-    private static String  cgroupMount;
-    private static boolean systemd;
-
-    static {
-        if (SystemInfo.isLinux()) {
-            final String mounts = "/proc/mounts";
-            try (BufferedReader reader = Files.newBufferedReader(Paths.get(mounts), Charset.forName("UTF-8"))) {
-                String line;
-                while ((line = reader.readLine()) != null) {
-                    String[] a = line.split("\\s+");
-                    // line has format: "DEVICE PATH FILESYSTEM FLAGS_DELIMITED_BY_COMMAS ??? ???"
-                    String filesystem = a[2];
-                    if ("cgroup".equals(filesystem)) {
-                        String path = a[1];
-                        if (path.endsWith("cpu")
-                            || path.endsWith("cpuacct")
-                            || path.endsWith("cpuset")
-                            || path.endsWith("memory")
-                            || path.endsWith("devices")
-                            || path.endsWith("freezer")) {
-                            cgroupMount = Paths.get(path).getParent().toString();
-                        } else if (path.endsWith("systemd")) {
-                            systemd = true;
-                        }
-                    }
-                }
-            } catch (IOException e) {
-                LOG.error(e.getMessage(), e);
-            }
-        }
-    }
-
-    /**
-     * Detects OOM with cgroup notification mechanism.
-     * <p/>
-     * https://access.redhat.com/documentation/en-US/Red_Hat_Enterprise_Linux/6/html/Resource_Management_Guide/sec-Using_the_Notification_API.html
-     */
-    private class OOMDetector implements Runnable {
-        private final String              container;
-        private final LogMessageProcessor containerLogProcessor;
-        private final CLibrary            cLib;
-        private final String              containerCgroup;
-
-        private volatile boolean stopped = false;
-
-        OOMDetector(String container, LogMessageProcessor containerLogProcessor) {
-            this.container = container;
-            this.containerLogProcessor = containerLogProcessor;
-            cLib = getCLibrary();
-
-            if (systemd) {
-                containerCgroup = cgroupMount + "/memory/system.slice/docker-" + container + ".scope/";
-            } else {
-                containerCgroup = cgroupMount + "/memory/docker/" + container + "/";
-            }
-        }
-
-        @Override
-        public void run() {
-            final String cf = containerCgroup + "cgroup.event_control";
-            final String oomf = containerCgroup + "memory.oom_control";
-            int efd = -1;
-            int oomfd = -1;
-            try {
-                if ((efd = cLib.eventfd(0, 1)) == -1) {
-                    LOG.error("Unable create a file descriptor for event notification");
-                    return;
-                }
-                int cfd;
-                if ((cfd = cLib.open(cf, CLibrary.O_WRONLY)) == -1) {
-                    LOG.error("Unable open event control file '{}' for write", cf);
-                    return;
-                }
-                if ((oomfd = cLib.open(oomf, CLibrary.O_RDONLY)) == -1) {
-                    LOG.error("Unable open OOM event file '{}' for read", oomf);
-                    return;
-                }
-                final byte[] data = String.format("%d %d", efd, oomfd).getBytes();
-                if (cLib.write(cfd, data, data.length) != data.length) {
-                    LOG.error("Unable write event control data to file '{}'", cf);
-                    return;
-                }
-                if (cLib.close(cfd) == -1) {
-                    LOG.error("Error closing of event control file '{}'", cf);
-                    return;
-                }
-                final LongByReference eventHolder = new LongByReference();
-                if (cLib.eventfd_read(efd, eventHolder) == 0) {
-                    if (stopped) {
-                        return;
-                    }
-                    LOG.warn("OOM event received for container '{}'", container);
-                    if (readCgroupValue("memory.failcnt") > 0) {
-                        try {
-                            containerLogProcessor.process(new LogMessage(LogMessage.Type.DOCKER,
-                                                                         "[ERROR] The processes in this machine need more RAM. This machine started with " +
-                                                                         Size.toHumanSize(
-                                                                                 inspectContainer(container).getConfig().getMemory())));
-                            containerLogProcessor.process(new LogMessage(LogMessage.Type.DOCKER,
-                                                                         "[ERROR] Create a new machine configuration that allocates additional RAM or increase" +
-                                                                         " the workspace RAM limit in the user dashboard."));
-                        } catch (/*IOException*/ Exception e) {
-                            LOG.warn(e.getMessage(), e);
-                        }
-                    }
-                }
-            } finally {
-                if (!stopped) {
-                    stopOOMDetector(container);
-                }
-                close(oomfd);
-                close(efd);
-            }
-        }
-
-        private void close(int fd) {
-            if (fd != -1) {
-                cLib.close(fd);
-            }
-        }
-
-        long readCgroupValue(String cgroupFile) {
-            final String failCntf = containerCgroup + cgroupFile;
-            try (BufferedReader reader = Files.newBufferedReader(Paths.get(failCntf), Charset.forName("UTF-8"))) {
-                return Long.parseLong(reader.readLine().trim());
-            } catch (IOException e) {
-                LOG.warn("Unable read content of file '{}'", failCntf);
-            } catch (NumberFormatException e) {
-                LOG.error("Unable parse content of file '{}'", failCntf);
-            }
-            return 0;
-        }
-
-        void start() {
-            executor.execute(this);
-        }
-
-        void stop() {
-            stopped = true;
-        }
     }
 }

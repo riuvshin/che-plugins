@@ -39,6 +39,7 @@ import org.eclipse.che.commons.user.User;
 import org.eclipse.che.dto.server.DtoFactory;
 import org.eclipse.che.inject.ConfigurationProperties;
 import org.eclipse.che.plugin.docker.client.DockerConnector;
+import org.eclipse.che.plugin.docker.client.DockerOOMDetector;
 import org.eclipse.che.plugin.docker.client.InitialAuthConfig;
 import org.eclipse.che.plugin.docker.client.ProgressLineFormatterImpl;
 import org.eclipse.che.plugin.docker.client.ProgressMonitor;
@@ -106,7 +107,7 @@ public class ServiceTest {
         //authConfigs = new AuthConfigs(Collections.singleton(new AuthConfig("localhost:5000", "codenvy", "password1")));
         InitialAuthConfig authConfigs = new InitialAuthConfig(configurationProperties);
 
-        docker = new DockerConnector(authConfigs);
+        docker = new DockerConnector(authConfigs, new DockerOOMDetector.NoOpDockerOOMDetector());
 
         machineRegistry = new MachineRegistry();
 
