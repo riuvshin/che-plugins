@@ -24,10 +24,11 @@ import org.eclipse.che.ide.api.notification.NotificationManager;
  */
 public class ExtServerStateNotifier implements ExtServerStateHandler {
 
-    private NotificationManager notificationManager;
+    private final NotificationManager         notificationManager;
 
     @Inject
-    public ExtServerStateNotifier(EventBus eventBus, NotificationManager notificationManager) {
+    public ExtServerStateNotifier(EventBus eventBus,
+                                  NotificationManager notificationManager) {
         this.notificationManager = notificationManager;
         eventBus.addHandler(ExtServerStateEvent.TYPE, this);
     }
@@ -40,5 +41,10 @@ public class ExtServerStateNotifier implements ExtServerStateHandler {
     @Override
     public void onExtServerStopped(ExtServerStateEvent event) {
         notificationManager.showWarning("Extension server stopped");
+    }
+
+    @Override
+    public void onExtServerFailed(ExtServerStateEvent event) {
+        notificationManager.showWarning("Extension server stopped due to an error");
     }
 }

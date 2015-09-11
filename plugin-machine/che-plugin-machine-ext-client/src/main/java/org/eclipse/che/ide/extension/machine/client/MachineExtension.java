@@ -23,6 +23,7 @@ import org.eclipse.che.ide.extension.machine.client.actions.CreateMachineAction;
 import org.eclipse.che.ide.extension.machine.client.actions.DestroyMachineAction;
 import org.eclipse.che.ide.extension.machine.client.actions.EditCommandsAction;
 import org.eclipse.che.ide.extension.machine.client.actions.ExecuteSelectedCommandAction;
+import org.eclipse.che.ide.extension.machine.client.actions.ShowExtServerLogsAction;
 import org.eclipse.che.ide.extension.machine.client.actions.RestartMachineAction;
 import org.eclipse.che.ide.extension.machine.client.actions.SelectCommandComboBoxAction;
 import org.eclipse.che.ide.extension.machine.client.actions.SwitchPerspectiveAction;
@@ -65,6 +66,7 @@ public class MachineExtension {
                                 SelectCommandComboBoxAction selectCommandAction,
                                 EditCommandsAction editCommandsAction,
                                 CreateMachineAction createMachine,
+                                ShowExtServerLogsAction showExtServerLogs,
                                 //Don't remove it's need for initialization
                                 ExtServerStateNotifier extServerStateNotifier,
                                 RestartMachineAction restartMachine,
@@ -90,11 +92,13 @@ public class MachineExtension {
         actionManager.registerAction("createMachine", createMachine);
         actionManager.registerAction("restartMachine", restartMachine);
         actionManager.registerAction("destroyMachine", destroyMachine);
+        actionManager.registerAction("showExtServerLogs", showExtServerLogs);
 
         mainMenu.add(machineMenu, new Constraints(AFTER, "run"));
         machineMenu.add(createMachine);
         machineMenu.add(restartMachine);
         machineMenu.add(destroyMachine);
+        machineMenu.add(showExtServerLogs);
 
         // add actions on right toolbar
         final DefaultActionGroup rightToolbarGroup = (DefaultActionGroup)actionManager.getAction(GROUP_RIGHT_TOOLBAR);

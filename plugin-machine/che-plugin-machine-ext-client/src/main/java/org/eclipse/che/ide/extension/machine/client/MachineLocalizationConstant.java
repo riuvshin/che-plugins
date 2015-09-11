@@ -76,6 +76,12 @@ public interface MachineLocalizationConstant extends Messages {
     @Key("control.machine.destroy.description")
     String machineDestroyDescription();
 
+    @Key("control.extServer.showLogs.text")
+    String showExtServerLogsTitle();
+
+    @Key("control.extServer.showLogs.description")
+    String showExtServerLogsDescription();
+
 
     /* Messages */
     @Key("messages.noDevMachine")

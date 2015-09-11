@@ -48,6 +48,11 @@ public class ProjectApiComponentInitializer {
             public void onExtServerStopped(ExtServerStateEvent event) {
 
             }
+
+            @Override
+            public void onExtServerFailed(ExtServerStateEvent event) {
+
+            }
         });
     }
 
