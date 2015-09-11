@@ -42,7 +42,7 @@ public class ShowExtServerLogsAction extends AbstractPerspectiveAction {
     private final String                      restContext;
     private final AppContext                  appContext;
     private final NotificationManager         notificationManager;
-    private       MachineLocalizationConstant localizedConstant;
+    private final MachineLocalizationConstant localizedConstant;
     private final AnalyticsEventLogger        eventLogger;
 
     @Inject
@@ -73,10 +73,7 @@ public class ShowExtServerLogsAction extends AbstractPerspectiveAction {
     @Override
     public void actionPerformed(@Nonnull ActionEvent event) {
         eventLogger.log(this);
-        showExtServerLogs();
-    }
 
-    public void showExtServerLogs() {
         String machineId = appContext.getDevMachineId();
         if (Strings.isNullOrEmpty(machineId)) {
             notificationManager.showWarning(localizedConstant.noDevMachine());

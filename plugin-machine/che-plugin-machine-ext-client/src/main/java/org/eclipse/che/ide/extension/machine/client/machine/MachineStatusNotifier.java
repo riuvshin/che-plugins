@@ -49,11 +49,11 @@ class MachineStatusNotifier {
     /** WebSocket channel to receive messages about changing machine state. */
     public static final String MACHINE_STATUS_WS_CHANNEL = "machine:status:";
 
-    private final MessageBus             messageBus;
-    private final EventBus               eventBus;
-    private final DtoUnmarshallerFactory dtoUnmarshallerFactory;
-    private       AppContext             appContext;
-    private final NotificationManager notificationManager;
+    private final MessageBus                  messageBus;
+    private final EventBus                    eventBus;
+    private final DtoUnmarshallerFactory      dtoUnmarshallerFactory;
+    private final AppContext                  appContext;
+    private final NotificationManager         notificationManager;
     private final MachineLocalizationConstant locale;
 
     @Inject
