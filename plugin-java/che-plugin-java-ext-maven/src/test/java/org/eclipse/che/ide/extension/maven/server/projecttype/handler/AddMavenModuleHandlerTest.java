@@ -88,9 +88,8 @@ public class AddMavenModuleHandlerTest {
         ProjectHandlerRegistry handlerRegistry = new ProjectHandlerRegistry(handlers);
 
         projectManager = new DefaultProjectManager(vfsRegistry, eventService,
-                                                   projectTypeRegistry, handlerRegistry);
+                                                   projectTypeRegistry, handlerRegistry, "");
     }
-
 
     @Test(expected = IllegalArgumentException.class)
     public void shouldNotAddModuleIfNotPomPackage() throws Exception {
@@ -103,7 +102,6 @@ public class AddMavenModuleHandlerTest {
                 .onCreateModule(project.getBaseFolder(), project.getPath() + "/" + module, new ProjectConfig(null, "maven"),
                                 Collections.<String, String>emptyMap());
     }
-
 
     @Test(expected = IllegalArgumentException.class)
     public void pomNotFound() throws Exception {
@@ -155,5 +153,4 @@ public class AddMavenModuleHandlerTest {
         String mavenModule = String.format("<module>%s</module>", module);
         Assert.assertTrue(pomContent.contains(mavenModule));
     }
-
 }

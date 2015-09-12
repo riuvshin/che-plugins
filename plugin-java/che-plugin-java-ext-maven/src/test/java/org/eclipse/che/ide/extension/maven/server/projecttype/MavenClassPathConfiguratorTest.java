@@ -21,7 +21,6 @@ import org.eclipse.che.api.project.server.Project;
 import org.eclipse.che.api.project.server.ProjectConfig;
 import org.eclipse.che.api.project.server.ProjectManager;
 import org.eclipse.che.api.project.server.VirtualFileEntry;
-import org.eclipse.che.api.project.server.handlers.ProjectHandler;
 import org.eclipse.che.api.project.server.handlers.ProjectHandlerRegistry;
 import org.eclipse.che.api.project.server.type.ProjectType;
 import org.eclipse.che.api.project.server.type.ProjectTypeRegistry;
@@ -91,11 +90,10 @@ public class MavenClassPathConfiguratorTest {
 
         VirtualFileSystemRegistry virtualFileSystemRegistry = new VirtualFileSystemRegistry();
         EventService eventService = new EventService();
-        ProjectHandlerRegistry handlerRegistry = new ProjectHandlerRegistry(new HashSet<ProjectHandler>());
-        projectManager =
-                new DefaultProjectManager(virtualFileSystemRegistry,
-                                          eventService,
-                                          projectTypeRegistry, handlerRegistry);
+        ProjectHandlerRegistry handlerRegistry = new ProjectHandlerRegistry(new HashSet<>());
+        projectManager = new DefaultProjectManager(virtualFileSystemRegistry,
+                                                   eventService,
+                                                   projectTypeRegistry, handlerRegistry, "");
         Injector injector = Guice.createInjector(new AbstractModule() {
             @Override
             protected void configure() {

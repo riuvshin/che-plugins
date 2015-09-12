@@ -49,7 +49,6 @@ public class MavenProjectTypeTest {
 
     private ProjectManager pm;
 
-
     @Before
     public void setUp() throws Exception {
 
@@ -68,11 +67,9 @@ public class MavenProjectTypeTest {
                 }, vfsRegistry);
         vfsRegistry.registerProvider(workspace, memoryFileSystemProvider);
 
-
         Set<ProjectType> projTypes = new HashSet<>();
         projTypes.add(new JavaProjectType());
-        projTypes.add(new MavenProjectType(new MavenValueProviderFactory(),
-                                           new JavaProjectType()));
+        projTypes.add(new MavenProjectType(new MavenValueProviderFactory(), new JavaProjectType()));
 
         ProjectTypeRegistry ptRegistry = new ProjectTypeRegistry(projTypes);
 
@@ -82,32 +79,25 @@ public class MavenProjectTypeTest {
 
         ProjectHandlerRegistry handlerRegistry = new ProjectHandlerRegistry(handlers);
 
-        pm = new DefaultProjectManager(vfsRegistry, eventService,
-                                       ptRegistry, handlerRegistry);
-
+        pm = new DefaultProjectManager(vfsRegistry, eventService, ptRegistry, handlerRegistry, "");
     }
 
     @Test
     public void testGetProjectType() throws Exception {
-
         ProjectType pt = pm.getProjectTypeRegistry().getProjectType("maven");
 
         Assert.assertNotNull(pt);
         Assert.assertTrue(pt.getAttributes().size() > 0);
         Assert.assertTrue(pt.isTypeOf("java"));
-
     }
 
     @Test
     public void testMavenProject() throws Exception {
-
-
         Map<String, AttributeValue> attributes = new HashMap<>();
         attributes.put(MavenAttributes.ARTIFACT_ID, new AttributeValue("myartifact"));
         attributes.put(MavenAttributes.GROUP_ID, new AttributeValue("mygroup"));
         attributes.put(MavenAttributes.VERSION, new AttributeValue("1.0"));
         attributes.put(MavenAttributes.PACKAGING, new AttributeValue("jar"));
-        //attributes.put(MavenAttributes., new AttributeValue("jar"));
 
         Project project = pm.createProject(workspace, "myProject",
                                            new ProjectConfig("my config", "maven", attributes, null, null),
@@ -115,33 +105,20 @@ public class MavenProjectTypeTest {
 
         ProjectConfig config = project.getConfig();
 
-//        System.out.println(" >>>" + config.getAttributes().get(MavenAttributes.ARTIFACT_ID).getString() + " "+
-//                        attributes.get(MavenAttributes.ARTIFACT_ID).getString());
-
         Assert.assertEquals(config.getAttributes().get(MavenAttributes.ARTIFACT_ID).getString(), "myartifact");
         Assert.assertEquals(config.getAttributes().get(MavenAttributes.VERSION).getString(), "1.0");
         Assert.assertEquals(config.getAttributes().get("language").getString(), "java");
 
-
         for (VirtualFileEntry file : project.getBaseFolder().getChildren()) {
-
             if (file.getName().equals("pom.xml")) {
-
                 Model pom = Model.readFrom(file.getVirtualFile().getContent().getStream());
-
-//                Assert.assertEquals(pom.getArtifactId(), "myartifact");
                 Assert.assertEquals(pom.getVersion(), "1.0");
-
             }
-
         }
-
     }
 
     @Test
     public void testEstimation() throws Exception {
-
-
         Map<String, AttributeValue> attributes = new HashMap<>();
         attributes.put(MavenAttributes.ARTIFACT_ID, new AttributeValue("myartifact"));
         attributes.put(MavenAttributes.GROUP_ID, new AttributeValue("mygroup"));
@@ -161,13 +138,10 @@ public class MavenProjectTypeTest {
         Assert.assertEquals(out.get(MavenAttributes.ARTIFACT_ID).getString(), "myartifact");
         Assert.assertEquals(out.get(MavenAttributes.VERSION).getString(), "1.0");
 
-
         try {
             pm.estimateProject(workspace, "testEstimateBad", "maven");
             Assert.fail("ValueStorageException expected");
         } catch (ValueStorageException e) {
-
         }
     }
-
 }

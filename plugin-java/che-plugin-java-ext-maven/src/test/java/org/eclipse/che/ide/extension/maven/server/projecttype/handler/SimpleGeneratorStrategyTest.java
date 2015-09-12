@@ -10,9 +10,6 @@
  *******************************************************************************/
 package org.eclipse.che.ide.extension.maven.server.projecttype.handler;
 
-import org.eclipse.che.api.core.ConflictException;
-import org.eclipse.che.api.core.ForbiddenException;
-import org.eclipse.che.api.core.ServerException;
 import org.eclipse.che.api.core.notification.EventService;
 import org.eclipse.che.api.project.server.DefaultProjectManager;
 import org.eclipse.che.api.project.server.FileEntry;
@@ -20,7 +17,6 @@ import org.eclipse.che.api.project.server.FolderEntry;
 import org.eclipse.che.api.project.server.ProjectConfig;
 import org.eclipse.che.api.project.server.ProjectManager;
 import org.eclipse.che.api.project.server.VirtualFileEntry;
-import org.eclipse.che.api.project.server.handlers.ProjectHandler;
 import org.eclipse.che.api.project.server.handlers.ProjectHandlerRegistry;
 import org.eclipse.che.api.project.server.type.AttributeValue;
 import org.eclipse.che.api.project.server.type.ProjectType;
@@ -30,7 +26,6 @@ import org.eclipse.che.api.vfs.server.VirtualFileSystemUser;
 import org.eclipse.che.api.vfs.server.VirtualFileSystemUserContext;
 import org.eclipse.che.api.vfs.server.impl.memory.MemoryFileSystemProvider;
 import org.eclipse.che.ide.extension.maven.shared.MavenAttributes;
-
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
@@ -38,7 +33,7 @@ import org.junit.Test;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashSet;
@@ -92,17 +87,10 @@ public class SimpleGeneratorStrategyTest {
 
     private void prepareProject() throws Exception {
         final String vfsUser = "dev";
-        final Set<String> vfsUserGroups = new LinkedHashSet<>(Arrays.asList("workspace/developer"));
+        final Set<String> vfsUserGroups = new LinkedHashSet<>(Collections.singletonList("workspace/developer"));
 
         Set<ProjectType> pts = new HashSet<>();
-        final ProjectType pt = new ProjectType("mytype", "mytype type", true, false) {
-            {
-                //addParent(parent);
-                //addConstantDefinition("child_const", "Constant", "const_value");
-            }
-        };
-
-
+        final ProjectType pt = new ProjectType("mytype", "mytype type", true, false) {};
         pts.add(pt);
 
         final ProjectTypeRegistry projectTypeRegistry = new ProjectTypeRegistry(pts);
@@ -118,10 +106,9 @@ public class SimpleGeneratorStrategyTest {
                 }, vfsRegistry);
         vfsRegistry.registerProvider(workspace, memoryFileSystemProvider);
 
-        //ProjectGeneratorRegistry generatorRegistry = new ProjectGeneratorRegistry(new HashSet<ProjectGenerator>());
-        ProjectHandlerRegistry handlerRegistry = new ProjectHandlerRegistry(new HashSet<ProjectHandler>());
+        ProjectHandlerRegistry handlerRegistry = new ProjectHandlerRegistry(new HashSet<>());
 
-        pm = new DefaultProjectManager(vfsRegistry, eventService, projectTypeRegistry, handlerRegistry);
+        pm = new DefaultProjectManager(vfsRegistry, eventService, projectTypeRegistry, handlerRegistry, "");
         pm.createProject(workspace, "my_project", new ProjectConfig("", pt.getId()), null, "public");
     }
 }
