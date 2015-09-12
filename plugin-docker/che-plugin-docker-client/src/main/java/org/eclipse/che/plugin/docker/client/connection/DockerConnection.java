@@ -43,7 +43,16 @@ public abstract class DockerConnection implements Closeable {
     }
 
     public DockerConnection query(String name, Object... values) {
+        if (name == null) {
+            throw new IllegalArgumentException("Name is null");
+        }
+        if (values == null) {
+            throw new IllegalArgumentException("Values are null");
+        }
         for (Object value : values) {
+            if (value == null) {
+                throw new IllegalArgumentException("Value is null");
+            }
             if (query.length() > 0) {
                 query.append('&');
             }

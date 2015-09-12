@@ -10,8 +10,9 @@
  *******************************************************************************/
 package org.eclipse.che.plugin.docker.client.connection;
 
+import com.google.common.base.Strings;
+
 import org.eclipse.che.commons.lang.Pair;
-import org.eclipse.che.ide.util.StringUtils;
 import org.eclipse.che.plugin.docker.client.DockerCertificates;
 
 import javax.inject.Inject;
@@ -72,7 +73,7 @@ public class TcpConnection extends DockerConnection {
     @Override
     protected DockerResponse request(String method, String path, String query, List<Pair<String, ?>> headers, Entity entity)
             throws IOException {
-        final String requestUri = path + (StringUtils.isNullOrEmpty(query) ? "" : "?" + query);
+        final String requestUri = path + (Strings.isNullOrEmpty(query) ? "" : "?" + query);
         final URL url = baseUri.resolve(requestUri).toURL();
         final String protocol = url.getProtocol();
         connection = (HttpURLConnection)url.openConnection();

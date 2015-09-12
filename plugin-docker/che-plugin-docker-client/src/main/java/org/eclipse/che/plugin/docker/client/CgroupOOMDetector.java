@@ -18,6 +18,7 @@ import org.eclipse.che.commons.lang.Size;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import javax.inject.Inject;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.net.URI;
@@ -44,6 +45,11 @@ public class CgroupOOMDetector implements DockerOOMDetector {
     private final DockerConnector          dockerConnector;
     private final ExecutorService          executor;
 
+    @Inject
+    public CgroupOOMDetector(DockerConnectorConfiguration connectorConfiguration, DockerConnector dockerConnector) {
+        this(connectorConfiguration.getDockerDaemonUri(), dockerConnector);
+    }
+
     public CgroupOOMDetector(URI dockerDaemonUri, DockerConnector dockerConnector) {
         this.dockerDaemonUri = dockerDaemonUri;
         this.dockerConnector = dockerConnector;
@@ -60,7 +66,7 @@ public class CgroupOOMDetector implements DockerOOMDetector {
     }
 
     @Override
-    public void startDetection(String container, LogMessageProcessor containerLogProcessor) {
+    public void startDetection(String container, MessageProcessor<LogMessage> containerLogProcessor) {
         if (needStartOOMDetector()) {
             if (cgroupMount == null) {
                 LOG.warn("System doesn't support OOM events");
@@ -156,15 +162,15 @@ public class CgroupOOMDetector implements DockerOOMDetector {
      * https://access.redhat.com/documentation/en-US/Red_Hat_Enterprise_Linux/6/html/Resource_Management_Guide/sec-Using_the_Notification_API.html
      */
     private class OOMDetector implements Runnable {
-        private final String              container;
-        private final LogMessageProcessor containerLogProcessor;
-        private final long                memory;
-        private final CLibrary            cLib;
-        private final String              containerCgroup;
+        private final String                       container;
+        private final MessageProcessor<LogMessage> containerLogProcessor;
+        private final long                         memory;
+        private final CLibrary                     cLib;
+        private final String                       containerCgroup;
 
         private volatile boolean stopped = false;
 
-        OOMDetector(String container, LogMessageProcessor containerLogProcessor, long memory) {
+        OOMDetector(String container, MessageProcessor<LogMessage> containerLogProcessor, long memory) {
             this.container = container;
             this.containerLogProcessor = containerLogProcessor;
             this.memory = memory;
