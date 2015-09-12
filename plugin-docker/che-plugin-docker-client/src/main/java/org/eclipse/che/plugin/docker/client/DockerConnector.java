@@ -33,10 +33,12 @@ import org.eclipse.che.plugin.docker.client.json.ContainerExitStatus;
 import org.eclipse.che.plugin.docker.client.json.ContainerInfo;
 import org.eclipse.che.plugin.docker.client.json.ContainerProcesses;
 import org.eclipse.che.plugin.docker.client.json.ContainerResource;
+import org.eclipse.che.plugin.docker.client.json.Event;
 import org.eclipse.che.plugin.docker.client.json.ExecConfig;
 import org.eclipse.che.plugin.docker.client.json.ExecCreated;
 import org.eclipse.che.plugin.docker.client.json.ExecInfo;
 import org.eclipse.che.plugin.docker.client.json.ExecStart;
+import org.eclipse.che.plugin.docker.client.json.Filters;
 import org.eclipse.che.plugin.docker.client.json.HostConfig;
 import org.eclipse.che.plugin.docker.client.json.Image;
 import org.eclipse.che.plugin.docker.client.json.ImageInfo;
@@ -63,6 +65,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 
+import static com.google.common.net.UrlEscapers.urlPathSegmentEscaper;
 import static java.io.File.separatorChar;
 
 /**
@@ -635,6 +638,54 @@ public class DockerConnector {
             throw new IOException(e.getLocalizedMessage(), e);
         } finally {
             connection.close();
+        }
+    }
+
+    /**
+     * Get docker events.
+     * Parameter {@code untilSecond} does nothing if {@code sinceSecond} is 0.<br>
+     * If {@code untilSecond} and {@code sinceSecond} are 0 method gets new events only (streaming mode).<br>
+     * If {@code untilSecond} and {@code sinceSecond} are not 0 (but less that current date)
+     * methods get events that were generated between specified dates.<br>
+     * If {@code untilSecond} is 0 but {@code sinceSecond} is not method gets old events and streams new ones.<br>
+     * If {@code sinceSecond} is 0 no old events will be got.<br>
+     * With some connection implementations method can fail due to connection timeout in streaming mode.
+     *
+     * @param sinceSecond
+     *         UNIX date in seconds. allow omit events created before specified date.
+     * @param untilSecond
+     *         UNIX date in seconds. allow omit events created after specified date.
+     * @param filters
+     *         filter of needed events. Available filters: {@code event=<string>}
+     *         {@code image=<string>} {@code container=<string>}
+     * @param messageProcessor
+     *         processor of all found events that satisfy specified parameters
+     * @throws IOException
+     */
+    public void getEvents(long sinceSecond,
+                          long untilSecond,
+                          Filters filters,
+                          MessageProcessor<Event> messageProcessor) throws IOException {
+        try (DockerConnection connection = openConnection(dockerDaemonUri).method("GET")
+                                                                          .path("/events")) {
+            if (sinceSecond != 0) {
+                connection.query("since", sinceSecond);
+            }
+            if (untilSecond != 0) {
+                connection.query("until", untilSecond);
+            }
+            if (filters != null) {
+                connection.query("filters", urlPathSegmentEscaper().escape(JsonHelper.toJson(filters.getFilters())));
+            }
+            final DockerResponse response = connection.request();
+            final int status = response.getStatus();
+            if (200 != status) {
+                throw new DockerException(getDockerExceptionMessage(response), status);
+            }
+
+            try (InputStream responseStream = response.getInputStream()) {
+                new MessagePumper<>(new JsonMessageReader<>(responseStream, Event.class), messageProcessor).start();
+            }
         }
     }
 
