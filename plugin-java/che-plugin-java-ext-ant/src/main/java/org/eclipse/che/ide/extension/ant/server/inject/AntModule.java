@@ -16,8 +16,10 @@ import com.google.inject.multibindings.Multibinder;
 import org.eclipse.che.api.project.server.ValueProviderFactory;
 import org.eclipse.che.api.project.server.handlers.ProjectHandler;
 import org.eclipse.che.api.project.server.type.ProjectType;
+import org.eclipse.che.api.project.server.type.ProjectTypeDetector;
 import org.eclipse.che.ide.extension.ant.server.project.type.AntProjectGenerator;
 import org.eclipse.che.ide.extension.ant.server.project.type.AntProjectType;
+import org.eclipse.che.ide.extension.ant.server.project.type.AntProjectTypeDetector;
 import org.eclipse.che.ide.extension.ant.server.project.type.AntValueProviderFactory;
 import org.eclipse.che.inject.DynaModule;
 
@@ -35,6 +37,8 @@ public class AntModule extends AbstractModule {
 
         Multibinder<ProjectType> projectTypeMultibinder = Multibinder.newSetBinder(binder(), ProjectType.class);
         projectTypeMultibinder.addBinding().to(AntProjectType.class);
+
+        Multibinder.newSetBinder(binder(), ProjectTypeDetector.class).addBinding().to(AntProjectTypeDetector.class);
 
         Multibinder.newSetBinder(binder(), ProjectHandler.class).addBinding().to(AntProjectGenerator.class);
     }

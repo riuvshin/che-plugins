@@ -13,8 +13,10 @@ package org.eclipse.che.ide.extension.maven.server.inject;
 import org.eclipse.che.api.project.server.ValueProviderFactory;
 import org.eclipse.che.api.project.server.handlers.ProjectHandler;
 import org.eclipse.che.api.project.server.type.ProjectType;
+import org.eclipse.che.api.project.server.type.ProjectTypeDetector;
 import org.eclipse.che.ide.extension.maven.server.MavenMultimoduleAutoBuilder;
 import org.eclipse.che.ide.extension.maven.server.projecttype.MavenProjectType;
+import org.eclipse.che.ide.extension.maven.server.projecttype.MavenProjectTypeDetector;
 import org.eclipse.che.ide.extension.maven.server.projecttype.MavenValueProviderFactory;
 import org.eclipse.che.ide.extension.maven.server.projecttype.handler.AddMavenModuleHandler;
 import org.eclipse.che.ide.extension.maven.server.projecttype.handler.ArchetypeGenerationStrategy;
@@ -35,6 +37,7 @@ public class MavenModule extends AbstractModule {
     protected void configure() {
         bind(MavenMultimoduleAutoBuilder.class);
         Multibinder.newSetBinder(binder(), ValueProviderFactory.class).addBinding().to(MavenValueProviderFactory.class);
+        Multibinder.newSetBinder(binder(), ProjectTypeDetector.class).addBinding().to(MavenProjectTypeDetector.class);
         Multibinder.newSetBinder(binder(), ProjectType.class).addBinding().to(MavenProjectType.class);
         Multibinder.newSetBinder(binder(), ProjectHandler.class).addBinding().to(MavenProjectGenerator.class);
         Multibinder.newSetBinder(binder(), ProjectHandler.class).addBinding().to(AddMavenModuleHandler.class);
