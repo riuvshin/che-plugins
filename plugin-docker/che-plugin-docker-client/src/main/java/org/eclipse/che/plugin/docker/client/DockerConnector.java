@@ -51,6 +51,7 @@ import org.slf4j.LoggerFactory;
 
 import javax.inject.Inject;
 import javax.inject.Singleton;
+import javax.ws.rs.core.MediaType;
 import java.io.BufferedInputStream;
 import java.io.File;
 import java.io.FileInputStream;
@@ -476,7 +477,7 @@ public class DockerConnector {
      */
     public void attachContainer(String container, MessageProcessor<LogMessage> containerLogsProcessor, boolean stream) throws IOException {
         final List<Pair<String, ?>> headers = new ArrayList<>(2);
-        headers.add(Pair.of("Content-Type", "text/plain"));
+        headers.add(Pair.of("Content-Type", MediaType.TEXT_PLAIN));
         headers.add(Pair.of("Content-Length", 0));
 
         try (DockerConnection connection = openConnection(dockerDaemonUri).method("POST")
@@ -517,9 +518,9 @@ public class DockerConnector {
      */
     @Deprecated
     public void copy(String container, String path, File hostPath) throws IOException {
-        final List<Pair<String, ?>> headers = new ArrayList<>(2);
-        headers.add(Pair.of("Content-Type", "application/json"));
         final String entity = JsonHelper.toJson(new ContainerResource().withResource(path), FIRST_LETTER_LOWERCASE);
+        final List<Pair<String, ?>> headers = new ArrayList<>(2);
+        headers.add(Pair.of("Content-Type", MediaType.APPLICATION_JSON));
         headers.add(Pair.of("Content-Length", entity.getBytes().length));
 
         try (DockerConnection connection = openConnection(dockerDaemonUri).method("POST")
@@ -548,13 +549,13 @@ public class DockerConnector {
     }
 
     public Exec createExec(String container, boolean detach, String... cmd) throws IOException {
-        final List<Pair<String, ?>> headers = new ArrayList<>(2);
-        headers.add(Pair.of("Content-Type", "application/json"));
         final ExecConfig execConfig = new ExecConfig().withCmd(cmd);
         if (!detach) {
             execConfig.withAttachStderr(true).withAttachStdout(true);
         }
+        final List<Pair<String, ?>> headers = new ArrayList<>(2);
         final String entity = JsonHelper.toJson(execConfig, FIRST_LETTER_LOWERCASE);
+        headers.add(Pair.of("Content-Type", MediaType.APPLICATION_JSON));
         headers.add(Pair.of("Content-Length", entity.getBytes().length));
 
         try (DockerConnection connection = openConnection(dockerDaemonUri).method("POST")
@@ -573,10 +574,10 @@ public class DockerConnector {
     }
 
     public void startExec(String execId, MessageProcessor<LogMessage> execOutputProcessor) throws IOException {
-        final List<Pair<String, ?>> headers = new ArrayList<>(2);
-        headers.add(Pair.of("Content-Type", "application/json"));
         final ExecStart execStart = new ExecStart().withDetach(execOutputProcessor == null);
         final String entity = JsonHelper.toJson(execStart, FIRST_LETTER_LOWERCASE);
+        final List<Pair<String, ?>> headers = new ArrayList<>(2);
+        headers.add(Pair.of("Content-Type", MediaType.APPLICATION_JSON));
         headers.add(Pair.of("Content-Length", entity.getBytes().length));
 
         try (DockerConnection connection = openConnection(dockerDaemonUri).method("POST")
@@ -620,7 +621,7 @@ public class DockerConnector {
 
     public ContainerProcesses top(String container, String... psArgs) throws IOException {
         final List<Pair<String, ?>> headers = new ArrayList<>(2);
-        headers.add(Pair.of("Content-Type", "text/plain"));
+        headers.add(Pair.of("Content-Type", MediaType.TEXT_PLAIN));
         headers.add(Pair.of("Content-Length", 0));
         final DockerConnection connection = openConnection(dockerDaemonUri).method("GET")
                                                                            .path("/containers/" + container + "/top")
@@ -878,7 +879,7 @@ public class DockerConnector {
 
     protected void doTag(String image, String repository, String tag, URI dockerDaemonUri) throws IOException {
         final List<Pair<String, ?>> headers = new ArrayList<>(3);
-        headers.add(Pair.of("Content-Type", "text/plain"));
+        headers.add(Pair.of("Content-Type", MediaType.TEXT_PLAIN));
         headers.add(Pair.of("Content-Length", 0));
 
         try (DockerConnection connection = openConnection(dockerDaemonUri).method("POST")
@@ -903,7 +904,7 @@ public class DockerConnector {
                           final ProgressMonitor progressMonitor,
                           final URI dockerDaemonUri) throws IOException, InterruptedException {
         final List<Pair<String, ?>> headers = new ArrayList<>(3);
-        headers.add(Pair.of("Content-Type", "text/plain"));
+        headers.add(Pair.of("Content-Type", MediaType.TEXT_PLAIN));
         headers.add(Pair.of("Content-Length", 0));
         headers.add(Pair.of("X-Registry-Auth", initialAuthConfig.getAuthConfigHeader()));
         final String fullRepo = registry != null ? registry + "/" + repository : repository;
@@ -964,7 +965,7 @@ public class DockerConnector {
                               URI dockerDaemonUri) throws IOException {
 
         final List<Pair<String, ?>> headers = new ArrayList<>(2);
-        headers.add(Pair.of("Content-Type", "application/json"));
+        headers.add(Pair.of("Content-Type", MediaType.APPLICATION_JSON));
         final String entity = "{}";
         headers.add(Pair.of("Content-Length", entity.getBytes().length));
 
@@ -1000,7 +1001,7 @@ public class DockerConnector {
                           final ProgressMonitor progressMonitor,
                           URI dockerDaemonUri) throws IOException, InterruptedException {
         final List<Pair<String, ?>> headers = new ArrayList<>(3);
-        headers.add(Pair.of("Content-Type", "text/plain"));
+        headers.add(Pair.of("Content-Type", MediaType.TEXT_PLAIN));
         headers.add(Pair.of("Content-Length", 0));
         headers.add(Pair.of("X-Registry-Auth", initialAuthConfig.getAuthConfigHeader()));
 
@@ -1058,7 +1059,7 @@ public class DockerConnector {
                                                  String containerName,
                                                  URI dockerDaemonUri) throws IOException {
         final List<Pair<String, ?>> headers = new ArrayList<>(2);
-        headers.add(Pair.of("Content-Type", "application/json"));
+        headers.add(Pair.of("Content-Type", MediaType.APPLICATION_JSON));
         final String entity = JsonHelper.toJson(containerConfig, FIRST_LETTER_LOWERCASE);
         headers.add(Pair.of("Content-Length", entity.getBytes().length));
 
@@ -1084,7 +1085,7 @@ public class DockerConnector {
                                     HostConfig hostConfig,
                                     URI dockerDaemonUri) throws IOException {
         final List<Pair<String, ?>> headers = new ArrayList<>(2);
-        headers.add(Pair.of("Content-Type", "application/json"));
+        headers.add(Pair.of("Content-Type", MediaType.APPLICATION_JSON));
         final String entity = hostConfig == null ? "{}" : JsonHelper.toJson(hostConfig, FIRST_LETTER_LOWERCASE);
         headers.add(Pair.of("Content-Length", entity.getBytes().length));
 

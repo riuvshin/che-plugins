@@ -44,14 +44,14 @@ public abstract class DockerConnection implements Closeable {
 
     public DockerConnection query(String name, Object... values) {
         if (name == null) {
-            throw new IllegalArgumentException("Name is null");
+            throw new NullPointerException("Name is null");
         }
         if (values == null) {
-            throw new IllegalArgumentException("Values are null");
+            throw new NullPointerException("Values are null");
         }
         for (Object value : values) {
             if (value == null) {
-                throw new IllegalArgumentException("Value is null");
+                throw new NullPointerException("Value is null");
             }
             if (query.length() > 0) {
                 query.append('&');
@@ -85,8 +85,11 @@ public abstract class DockerConnection implements Closeable {
         return request(method, path, query.toString(), headers, entity);
     }
 
-    protected abstract DockerResponse request(String method, String path, String query, List<Pair<String, ?>> headers, Entity entity)
-            throws IOException;
+    protected abstract DockerResponse request(String method,
+                                              String path,
+                                              String query,
+                                              List<Pair<String, ?>> headers,
+                                              Entity entity) throws IOException;
 
     public abstract void close();
 

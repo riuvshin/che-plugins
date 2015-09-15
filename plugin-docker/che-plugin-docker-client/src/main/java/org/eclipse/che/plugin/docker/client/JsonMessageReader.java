@@ -23,6 +23,7 @@ import java.io.PushbackInputStream;
 /**
  * Docker daemon sends chunked data in response. One chunk isn't always one JSON object so need to read full chunk at once to be able
  * restore JSON object. This reader merges (if needs) few chunks until get full JSON object that we can parse.
+ * Parameter of this class is class where JSON message should be parsed.
  *
  * @author Alexander Garagatyi
  */
@@ -33,7 +34,7 @@ public class JsonMessageReader<T> {
     private final Class<T>            messageClass;
     private final PushbackInputStream inputStream;
 
-    private boolean firstRead = false;
+    private boolean firstRead = true;
 
     /**
      * @param source source of messages in JSON format
@@ -42,12 +43,22 @@ public class JsonMessageReader<T> {
      *                     we can't get parameter class of current class.
      */
     public JsonMessageReader(InputStream source, Class<T> messageClass) {
-        this.inputStream = new PushbackInputStream(source);
+        // we need to push back only 1 byte, read more further
+        this.inputStream = new PushbackInputStream(source, 1);
         this.streamParser = new JsonStreamParser(new InputStreamReader(source));
         this.messageClass = messageClass;
     }
 
+    /**
+     * Returns message parsed from JSON stream.
+     *
+     * @return object of class passed as parameter of constructor or null if stream is empty
+     * @throws IOException if error occurs on reading stream
+     */
     public T next() throws IOException {
+        // on first read we check if this stream is empty with reading of the first byte of stream
+        // if so we do not call JsonStreamParser.hasNext() because it will throw exception
+        // if not we return read byte to stream using PushbackInputStream
         if (firstRead) {
             int firstByte = inputStream.read();
             if (firstByte == -1) {

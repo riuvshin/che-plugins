@@ -53,8 +53,10 @@ public class CgroupOOMDetector implements DockerOOMDetector {
     public CgroupOOMDetector(URI dockerDaemonUri, DockerConnector dockerConnector) {
         this.dockerDaemonUri = dockerDaemonUri;
         this.dockerConnector = dockerConnector;
-        oomDetectors = new ConcurrentHashMap<>();
-        executor = Executors.newCachedThreadPool(new ThreadFactoryBuilder().setNameFormat("CgroupOOMDetector-%d").setDaemon(true).build());
+        this.oomDetectors = new ConcurrentHashMap<>();
+        this.executor = Executors.newCachedThreadPool(new ThreadFactoryBuilder().setNameFormat("CgroupOOMDetector-%d")
+                                                                                .setDaemon(true)
+                                                                                .build());
     }
 
     @Override
@@ -67,15 +69,16 @@ public class CgroupOOMDetector implements DockerOOMDetector {
 
     @Override
     public void startDetection(String container, MessageProcessor<LogMessage> containerLogProcessor) {
-        if (needStartOOMDetector()) {
+        if (needStartOOMDetector(container)) {
             if (cgroupMount == null) {
                 LOG.warn("System doesn't support OOM events");
                 return;
             }
             try {
                 final long memory = dockerConnector.inspectContainer(container).getConfig().getMemory();
-                final OOMDetector oomDetector = new OOMDetector(container, containerLogProcessor, memory);
-                oomDetectors.put(container, oomDetector);
+                OOMDetector oomDetector = new OOMDetector(container, containerLogProcessor, memory);
+                oomDetectors.putIfAbsent(container, oomDetector);
+                oomDetector = oomDetectors.get(container);
                 oomDetector.start();
             } catch (IOException e) {
                 LOG.error(e.getLocalizedMessage(), e);
@@ -83,14 +86,16 @@ public class CgroupOOMDetector implements DockerOOMDetector {
         }
     }
 
-    private boolean needStartOOMDetector() {
-        if (DockerConnector.isUnixSocketUri(dockerDaemonUri)) {
-            return true;
-        }
-        if (SystemInfo.isLinux()) {
-            final String dockerDaemonHost = dockerDaemonUri.getHost();
-            if ("localhost".equals(dockerDaemonHost) || "127.0.0.1".equals(dockerDaemonHost)) {
+    private boolean needStartOOMDetector(String container) {
+        if (! oomDetectors.containsKey(container)) {
+            if (DockerConnector.isUnixSocketUri(dockerDaemonUri)) {
                 return true;
+            }
+            if (SystemInfo.isLinux()) {
+                final String dockerDaemonHost = dockerDaemonUri.getHost();
+                if ("localhost".equals(dockerDaemonHost) || "127.0.0.1".equals(dockerDaemonHost)) {
+                    return true;
+                }
             }
         }
         return false;
@@ -169,6 +174,7 @@ public class CgroupOOMDetector implements DockerOOMDetector {
         private final String                       containerCgroup;
 
         private volatile boolean stopped = false;
+        private boolean started = false;
 
         OOMDetector(String container, MessageProcessor<LogMessage> containerLogProcessor, long memory) {
             this.container = container;
@@ -258,8 +264,11 @@ public class CgroupOOMDetector implements DockerOOMDetector {
             return 0;
         }
 
-        void start() {
-            executor.execute(this);
+        synchronized void start() {
+            if (!started) {
+                started = true;
+                executor.execute(this);
+            }
         }
 
         void stop() {

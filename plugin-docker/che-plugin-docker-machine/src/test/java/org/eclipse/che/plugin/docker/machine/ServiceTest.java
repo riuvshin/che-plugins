@@ -136,14 +136,6 @@ public class ServiceTest {
         docker.removeContainer(registryContainerId, true, false);
     }
 
-//    @Test
-//    public void should() throws Exception {
-//        docker.getEvents(1442040300,0,
-//                         1442040506,
-//                         new Filters().withFilter("event", "start"),
-//                         (message) -> System.out.println(message.toString()));
-//    }
-
     @BeforeMethod
     public void setUp() throws Exception {
         snapshotDao = mock(SnapshotDao.class);
