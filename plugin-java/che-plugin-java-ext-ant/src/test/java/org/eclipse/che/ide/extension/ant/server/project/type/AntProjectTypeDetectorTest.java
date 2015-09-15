@@ -13,8 +13,6 @@ package org.eclipse.che.ide.extension.ant.server.project.type;
 import org.eclipse.che.api.core.notification.EventService;
 import org.eclipse.che.api.project.server.DefaultProjectManager;
 import org.eclipse.che.api.project.server.FolderEntry;
-import org.eclipse.che.api.project.server.Project;
-import org.eclipse.che.api.project.server.ProjectConfig;
 import org.eclipse.che.api.project.server.ProjectManager;
 import org.eclipse.che.api.project.server.handlers.ProjectHandler;
 import org.eclipse.che.api.project.server.handlers.ProjectHandlerRegistry;
@@ -27,7 +25,6 @@ import org.eclipse.che.api.vfs.server.VirtualFileSystemUserContext;
 import org.eclipse.che.api.vfs.server.impl.memory.MemoryFileSystemProvider;
 import org.eclipse.che.api.vfs.server.impl.memory.MemoryMountPoint;
 import org.eclipse.che.ide.ext.java.server.projecttype.JavaProjectType;
-import org.eclipse.che.ide.extension.ant.shared.AntAttributes;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
@@ -38,9 +35,6 @@ import java.util.Arrays;
 import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.Set;
-
-import static org.eclipse.che.ide.extension.ant.shared.AntAttributes.SOURCE_FOLDER;
-import static org.eclipse.che.ide.extension.ant.shared.AntAttributes.TEST_SOURCE_FOLDER;
 
 /**
  * @author Roman Nikitenko
@@ -119,22 +113,5 @@ public class AntProjectTypeDetectorTest {
         FolderEntry projectFolder = new FolderEntry(workspace, project);
 
         Assert.assertFalse(antProjectTypeDetector.detect(projectFolder));
-    }
-
-    @Test
-    public void shouldCreateConfig() throws Exception {
-        projectManager.getProjectTypeRegistry()
-                      .registerProjectType(new AntProjectType(new AntValueProviderFactory(), new JavaProjectType()));
-
-//        VirtualFile myVfRoot = memoryMountPoint.getRoot();
-//        VirtualFile project = myVfRoot.createFolder("my_project");
-//        FolderEntry projectFolder = new FolderEntry(workspace, project);
-
-        FolderEntry projectFolder = projectManager.getProjectsRoot(workspace).createFolder("my_project");
-
-        projectFolder.createFolder("someFolder");
-        projectFolder.createFile("build.xml", new ByteArrayInputStream(BUILD_FILE.getBytes()), MediaType.TEXT_PLAIN);
-
-        Assert.assertTrue(antProjectTypeDetector.detect(projectFolder));
     }
 }

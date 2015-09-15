@@ -75,12 +75,12 @@ public class AntProjectTypeDetector implements ProjectTypeDetector {
         String sourceDir = "src";
         String testDir = "test";
         for (String directory : sourceDirectories) {
+            if (directory.contains("src")) {
+                sourceDir = directory;
+            }
             if (directory.contains("test")) {
                 testDir = directory;
                 break;
-            }
-            if (directory.contains("src")) {
-                sourceDir = directory;
             }
         }
         Map<String, AttributeValue> attributes = new HashMap<>();
