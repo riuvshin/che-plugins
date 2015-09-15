@@ -77,6 +77,7 @@ public class AntProjectTypeDetector implements ProjectTypeDetector {
         for (String directory : sourceDirectories) {
             if (directory.contains("src")) {
                 sourceDir = directory;
+                break;
             }
             if (directory.contains("test")) {
                 testDir = directory;
