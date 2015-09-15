@@ -19,7 +19,7 @@ import org.eclipse.che.plugin.docker.client.DockerConnector;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import javax.annotation.Nullable;
+import org.eclipse.che.commons.annotation.Nullable;
 import javax.annotation.PostConstruct;
 import javax.annotation.PreDestroy;
 import javax.inject.Inject;
@@ -103,7 +103,7 @@ public class EmbeddedDockerRunnerRegistryPlugin {
                 final Path relEnvPath = dockerFilesDirPath.relativize(environmentDir.toPath());
                 try {
                     final int nameCount = relEnvPath.getNameCount();
-                    final String runner = relEnvPath.subpath(0, nameCount - 1).toString();
+                    final String runner = relEnvPath.subpath(0, nameCount - 1).toString().replace('\\', '/');
                     final String environment = relEnvPath.subpath(nameCount - 1, nameCount).toString();
                     EmbeddedDockerRunner dockerRunner = runnersMap.get(runner);
                     if (dockerRunner == null) {
