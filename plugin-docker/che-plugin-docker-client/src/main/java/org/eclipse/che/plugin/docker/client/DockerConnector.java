@@ -72,6 +72,9 @@ import java.util.concurrent.TimeUnit;
 
 import static com.google.common.net.UrlEscapers.urlPathSegmentEscaper;
 import static java.io.File.separatorChar;
+import static javax.ws.rs.core.Response.Status.CREATED;
+import static javax.ws.rs.core.Response.Status.NOT_MODIFIED;
+import static javax.ws.rs.core.Response.Status.NO_CONTENT;
 import static javax.ws.rs.core.Response.Status.OK;
 
 /**
@@ -157,7 +160,7 @@ public class DockerConnector {
                                                                           .path("/info")) {
             final DockerResponse response = connection.request();
             final int status = response.getStatus();
-            if (200 != status) {
+            if (OK.getStatusCode() != status) {
                 throw new DockerException(getDockerExceptionMessage(response), status);
             }
             return parseResponseStreamAndClose(response.getInputStream(), org.eclipse.che.plugin.docker.client.json.SystemInfo.class);
@@ -177,7 +180,7 @@ public class DockerConnector {
                                                                           .path("/version")) {
             final DockerResponse response = connection.request();
             final int status = response.getStatus();
-            if (200 != status) {
+            if (OK.getStatusCode() != status) {
                 throw new DockerException(getDockerExceptionMessage(response), status);
             }
             return parseResponseStreamAndClose(response.getInputStream(), Version.class);
@@ -197,7 +200,7 @@ public class DockerConnector {
                                                                           .path("/images/json")) {
             final DockerResponse response = connection.request();
             final int status = response.getStatus();
-            if (200 != status) {
+            if (OK.getStatusCode() != status) {
                 throw new DockerException(getDockerExceptionMessage(response), status);
             }
             return parseResponseStreamAndClose(response.getInputStream(), Image[].class);
@@ -275,7 +278,7 @@ public class DockerConnector {
                                                                           .path("/images/" + image + "/json")) {
             final DockerResponse response = connection.request();
             final int status = response.getStatus();
-            if (200 != status) {
+            if (OK.getStatusCode() != status) {
                 throw new DockerException(getDockerExceptionMessage(response), status);
             }
             return parseResponseStreamAndClose(response.getInputStream(), ImageInfo.class);
@@ -335,7 +338,7 @@ public class DockerConnector {
      */
     public void stopContainer(String container, long timeout, TimeUnit timeunit) throws IOException {
         final List<Pair<String, ?>> headers = new ArrayList<>(2);
-        headers.add(Pair.of("Content-Type", "text/plain"));
+        headers.add(Pair.of("Content-Type", MediaType.TEXT_PLAIN));
         headers.add(Pair.of("Content-Length", 0));
         try (DockerConnection connection = openConnection(dockerDaemonUri).method("POST")
                                                                           .path("/containers/" + container + "/stop")
@@ -343,7 +346,7 @@ public class DockerConnector {
                                                                           .headers(headers)) {
             final DockerResponse response = connection.request();
             final int status = response.getStatus();
-            if (!(204 == status || 304 == status)) {
+            if (!(NO_CONTENT.getStatusCode() == status || NOT_MODIFIED.getStatusCode() == status)) {
                 throw new DockerException(getDockerExceptionMessage(response), status);
             }
         }
@@ -360,7 +363,7 @@ public class DockerConnector {
      */
     public void killContainer(String container, int signal) throws IOException {
         final List<Pair<String, ?>> headers = new ArrayList<>(2);
-        headers.add(Pair.of("Content-Type", "text/plain"));
+        headers.add(Pair.of("Content-Type", MediaType.TEXT_PLAIN));
         headers.add(Pair.of("Content-Length", 0));
 
         try (DockerConnection connection = openConnection(dockerDaemonUri).method("POST")
@@ -369,7 +372,7 @@ public class DockerConnector {
                                                                           .headers(headers)) {
             final DockerResponse response = connection.request();
             final int status = response.getStatus();
-            if (204 != status) {
+            if (NO_CONTENT.getStatusCode() != status) {
                 throw new DockerException(getDockerExceptionMessage(response), status);
             }
         }
@@ -404,7 +407,7 @@ public class DockerConnector {
                                                                           .query("v", removeVolumes ? 1 : 0)) {
             final DockerResponse response = connection.request();
             final int status = response.getStatus();
-            if (204 != status) {
+            if (NO_CONTENT.getStatusCode() != status) {
                 throw new DockerException(getDockerExceptionMessage(response), status);
             }
         }
@@ -420,7 +423,7 @@ public class DockerConnector {
      */
     public int waitContainer(String container) throws IOException {
         final List<Pair<String, ?>> headers = new ArrayList<>(2);
-        headers.add(Pair.of("Content-Type", "text/plain"));
+        headers.add(Pair.of("Content-Type", MediaType.TEXT_PLAIN));
         headers.add(Pair.of("Content-Length", 0));
 
         try (DockerConnection connection = openConnection(dockerDaemonUri).method("POST")
@@ -428,7 +431,7 @@ public class DockerConnector {
                                                                           .headers(headers)) {
             final DockerResponse response = connection.request();
             final int status = response.getStatus();
-            if (200 != status) {
+            if (OK.getStatusCode() != status) {
                 throw new DockerException(getDockerExceptionMessage(response), status);
             }
             return parseResponseStreamAndClose(response.getInputStream(), ContainerExitStatus.class).getStatusCode();
@@ -454,7 +457,7 @@ public class DockerConnector {
                                                                           .path("/containers/" + container + "/json")) {
             final DockerResponse response = connection.request();
             final int status = response.getStatus();
-            if (200 != status) {
+            if (OK.getStatusCode() != status) {
                 throw new DockerException(getDockerExceptionMessage(response), status);
             }
             return parseResponseStreamAndClose(response.getInputStream(), ContainerInfo.class);
@@ -489,7 +492,7 @@ public class DockerConnector {
                                                                           .headers(headers)) {
             final DockerResponse response = connection.request();
             final int status = response.getStatus();
-            if (200 != status) {
+            if (OK.getStatusCode() != status) {
                 throw new DockerException(getDockerExceptionMessage(response), status);
             }
             try (InputStream responseStream = response.getInputStream()) {
@@ -529,7 +532,7 @@ public class DockerConnector {
                                                                           .entity(entity)) {
             final DockerResponse response = connection.request();
             final int status = response.getStatus();
-            if (200 != status) {
+            if (OK.getStatusCode() != status) {
                 throw new DockerException(getDockerExceptionMessage(response), status);
             }
             // TarUtils uses apache commons compress library for working with tar archive and it fails
@@ -591,7 +594,7 @@ public class DockerConnector {
             if (status / 100 != 2) {
                 throw new DockerException(getDockerExceptionMessage(response), status);
             }
-            if (status != 204 && execOutputProcessor != null) {
+            if (status != NO_CONTENT.getStatusCode() && execOutputProcessor != null) {
                 try (InputStream responseStream = response.getInputStream()) {
                     new LogMessagePumper(responseStream, execOutputProcessor).start();
                 }
@@ -610,7 +613,7 @@ public class DockerConnector {
                                                                           .path("/exec/" + execId + "/json")) {
             final DockerResponse response = connection.request();
             final int status = response.getStatus();
-            if (200 != status) {
+            if (OK.getStatusCode() != status) {
                 throw new DockerException(getDockerExceptionMessage(response), status);
             }
             return parseResponseStreamAndClose(response.getInputStream(), ExecInfo.class);
@@ -640,7 +643,7 @@ public class DockerConnector {
         try {
             final DockerResponse response = connection.request();
             final int status = response.getStatus();
-            if (200 != status) {
+            if (OK.getStatusCode() != status) {
                 throw new DockerException(getDockerExceptionMessage(response), status);
             }
             return parseResponseStreamAndClose(response.getInputStream(), ContainerProcesses.class);
@@ -762,7 +765,7 @@ public class DockerConnector {
             }
             final DockerResponse response = connection.request();
             final int status = response.getStatus();
-            if (200 != status) {
+            if (OK.getStatusCode() != status) {
                 throw new DockerException(getDockerExceptionMessage(response), status);
             }
 
@@ -816,7 +819,7 @@ public class DockerConnector {
             }
             final DockerResponse response = connection.request();
             final int status = response.getStatus();
-            if (200 != status) {
+            if (OK.getStatusCode() != status) {
                 throw new DockerException(getDockerExceptionMessage(response), status);
             }
             try (InputStream responseStream = response.getInputStream()) {
@@ -871,7 +874,7 @@ public class DockerConnector {
                                                                           .query("force", force ? 1 : 0)) {
             final DockerResponse response = connection.request();
             final int status = response.getStatus();
-            if (200 != status) {
+            if (OK.getStatusCode() != status) {
                 throw new DockerException(getDockerExceptionMessage(response), status);
             }
         }
@@ -892,7 +895,7 @@ public class DockerConnector {
             }
             final DockerResponse response = connection.request();
             final int status = response.getStatus();
-            if (201 != status) {
+            if (CREATED.getStatusCode() != status) {
                 throw new DockerException(getDockerExceptionMessage(response), status);
             }
         }
@@ -917,7 +920,7 @@ public class DockerConnector {
             }
             final DockerResponse response = connection.request();
             final int status = response.getStatus();
-            if (200 != status) {
+            if (OK.getStatusCode() != status) {
                 throw new DockerException(getDockerExceptionMessage(response), status);
             }
             try (InputStream responseStream = response.getInputStream()) {
@@ -986,7 +989,7 @@ public class DockerConnector {
             }
             final DockerResponse response = connection.request();
             final int status = response.getStatus();
-            if (201 != status) {
+            if (CREATED.getStatusCode() != status) {
                 throw new DockerException(getDockerExceptionMessage(response), status);
             }
             return parseResponseStreamAndClose(response.getInputStream(), ContainerCommited.class).getId();
@@ -1015,7 +1018,7 @@ public class DockerConnector {
             }
             final DockerResponse response = connection.request();
             final int status = response.getStatus();
-            if (200 != status) {
+            if (OK.getStatusCode() != status) {
                 throw new DockerException(getDockerExceptionMessage(response), status);
             }
             try (InputStream responseStream = response.getInputStream()) {
@@ -1072,7 +1075,7 @@ public class DockerConnector {
             }
             final DockerResponse response = connection.request();
             final int status = response.getStatus();
-            if (201 != status) {
+            if (CREATED.getStatusCode() != status) {
                 throw new DockerException(getDockerExceptionMessage(response), status);
             }
             return parseResponseStreamAndClose(response.getInputStream(), ContainerCreated.class);
@@ -1095,10 +1098,10 @@ public class DockerConnector {
                                                                           .entity(entity)) {
             final DockerResponse response = connection.request();
             final int status = response.getStatus();
-            if (!(204 == status || 304 == status)) {
+            if (!(NO_CONTENT.getStatusCode() == status || NOT_MODIFIED.getStatusCode() == status)) {
 
                 final String errorMessage = getDockerExceptionMessage(response);
-                if (200 == status) {
+                if (OK.getStatusCode() == status) {
                     // docker API 1.20 returns 200 with warning message about usage of loopback docker backend
                     LOG.warn(errorMessage);
                 } else {
