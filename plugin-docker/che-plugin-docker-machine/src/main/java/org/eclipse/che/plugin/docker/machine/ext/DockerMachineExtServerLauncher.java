@@ -27,7 +27,10 @@ import javax.annotation.PostConstruct;
 import javax.inject.Inject;
 import javax.inject.Named;
 import javax.inject.Singleton;
+import java.io.File;
 import java.io.IOException;
+
+import static java.nio.file.Files.notExists;
 
 /**
  * Starts extensions server in the machine after start
@@ -37,6 +40,7 @@ import java.io.IOException;
 @Singleton // must be eager
 public class DockerMachineExtServerLauncher {
     public static final String START_EXT_SERVER_COMMAND = "machine.server.ext.run_command";
+    public static final String EXT_SERVER_ARCHIVE_LOCATION = "machine.server.ext.archive";
 
     private static final Logger LOG = LoggerFactory.getLogger(DockerMachineExtServerLauncher.class);
 
@@ -44,20 +48,30 @@ public class DockerMachineExtServerLauncher {
     private final DockerConnector docker;
     private final MachineManager  machineManager;
     private final String          extServerStartCommand;
+    private final String          extServerArchiveLocation;
 
     @Inject
     public DockerMachineExtServerLauncher(EventService eventService,
                                           DockerConnector docker,
                                           MachineManager machineManager,
-                                          @Named(START_EXT_SERVER_COMMAND) String extServerStartCommand) {
+                                          @Named(START_EXT_SERVER_COMMAND) String extServerStartCommand,
+                                          @Named(EXT_SERVER_ARCHIVE_LOCATION) String extServerArchiveLocation) {
         this.eventService = eventService;
         this.docker = docker;
         this.machineManager = machineManager;
         this.extServerStartCommand = extServerStartCommand;
+        this.extServerArchiveLocation = extServerArchiveLocation;
     }
 
     @PostConstruct
-    private void start() {
+    public void start() {
+
+        if (notExists(new File(extServerArchiveLocation).toPath())) {
+            String msg =  String.format("Ext server archive not found at %s", extServerArchiveLocation);
+            LOG.error(msg);
+            throw new RuntimeException(msg);
+        }
+
         eventService.subscribe(new EventSubscriber<MachineStatusEvent>() {
             @Override
             public void onEvent(MachineStatusEvent event) {
