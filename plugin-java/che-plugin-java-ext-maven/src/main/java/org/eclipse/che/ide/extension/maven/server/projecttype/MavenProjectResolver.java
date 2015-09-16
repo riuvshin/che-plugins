@@ -68,6 +68,7 @@ public class MavenProjectResolver {
                     project = new Project(moduleEntry, projectManager);
                 }
                 project.updateConfig(projectConfig);
+                parentProject.getModules().add(module);
                 resolve(project.getBaseFolder(), projectManager);
             }
         }
