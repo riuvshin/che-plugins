@@ -39,14 +39,10 @@ import org.eclipse.che.commons.user.User;
 import org.eclipse.che.dto.server.DtoFactory;
 import org.eclipse.che.inject.ConfigurationProperties;
 import org.eclipse.che.plugin.docker.client.DockerConnector;
-import org.eclipse.che.plugin.docker.client.DockerOOMDetector;
 import org.eclipse.che.plugin.docker.client.InitialAuthConfig;
-import org.eclipse.che.plugin.docker.client.MessageProcessor;
 import org.eclipse.che.plugin.docker.client.ProgressLineFormatterImpl;
 import org.eclipse.che.plugin.docker.client.ProgressMonitor;
 import org.eclipse.che.plugin.docker.client.json.ContainerConfig;
-import org.eclipse.che.plugin.docker.client.json.Event;
-import org.eclipse.che.plugin.docker.client.json.Filters;
 import org.eclipse.che.plugin.docker.client.json.HostConfig;
 import org.eclipse.che.plugin.docker.client.json.PortBinding;
 import org.eclipse.che.plugin.docker.client.json.ProgressStatus;
@@ -109,12 +105,10 @@ public class ServiceTest {
 
     @BeforeClass
     public void setUpClass() throws Exception {
-        //authConfigs = new AuthConfigs(Collections.singleton(new AuthConfig("localhost:5000", "codenvy", "password1")));
         when(configurationProperties.getProperties(anyString())).thenReturn(Collections.EMPTY_MAP);
         InitialAuthConfig authConfigs = new InitialAuthConfig(configurationProperties);
 
-        final URI uri = URI.create("http://localhost:4243");
-        docker = new DockerConnector(uri, null, authConfigs);
+        docker = new DockerConnector(authConfigs);
 
         machineRegistry = new MachineRegistry();
 

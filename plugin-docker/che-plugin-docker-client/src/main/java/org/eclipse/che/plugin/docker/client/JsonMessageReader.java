@@ -18,7 +18,7 @@ import com.google.gson.JsonStreamParser;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
-import java.io.PushbackInputStream;
+import java.io.PushbackReader;
 
 /**
  * Docker daemon sends chunked data in response. One chunk isn't always one JSON object so need to read full chunk at once to be able
@@ -30,9 +30,9 @@ import java.io.PushbackInputStream;
 public class JsonMessageReader<T> {
     private static final Gson GSON = new Gson();
 
-    private final JsonStreamParser    streamParser;
-    private final Class<T>            messageClass;
-    private final PushbackInputStream inputStream;
+    private final JsonStreamParser streamParser;
+    private final Class<T>         messageClass;
+    private final PushbackReader   reader;
 
     private boolean firstRead = true;
 
@@ -43,9 +43,9 @@ public class JsonMessageReader<T> {
      *                     we can't get parameter class of current class.
      */
     public JsonMessageReader(InputStream source, Class<T> messageClass) {
-        // we need to push back only 1 byte, read more further
-        this.inputStream = new PushbackInputStream(source, 1);
-        this.streamParser = new JsonStreamParser(new InputStreamReader(source));
+        // we need to push back only 1 char, read more further
+        this.reader = new PushbackReader(new InputStreamReader(source), 1);
+        this.streamParser = new JsonStreamParser(reader);
         this.messageClass = messageClass;
     }
 
@@ -60,11 +60,11 @@ public class JsonMessageReader<T> {
         // if so we do not call JsonStreamParser.hasNext() because it will throw exception
         // if not we return read byte to stream using PushbackInputStream
         if (firstRead) {
-            int firstByte = inputStream.read();
-            if (firstByte == -1) {
+            int firstChar = reader.read();
+            if (firstChar == -1) {
                 return null;
             } else {
-                inputStream.unread(firstByte);
+                reader.unread(firstChar);
                 firstRead = false;
             }
         }
