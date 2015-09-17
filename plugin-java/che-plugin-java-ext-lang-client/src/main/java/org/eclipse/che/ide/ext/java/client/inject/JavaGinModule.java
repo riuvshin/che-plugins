@@ -31,6 +31,7 @@ import org.eclipse.che.ide.ext.java.client.navigation.JavaNavigationServiceImpl;
 import org.eclipse.che.ide.ext.java.client.newsourcefile.NewJavaSourceFileView;
 import org.eclipse.che.ide.ext.java.client.newsourcefile.NewJavaSourceFileViewImpl;
 import org.eclipse.che.ide.ext.java.client.projecttree.JavaNodeFactory;
+import org.eclipse.che.ide.ext.java.client.refactoring.rename.JavaRefactoringRename;
 import org.eclipse.che.ide.ext.java.client.settings.compiler.ErrorWarningsPresenter;
 import org.eclipse.che.ide.ext.java.client.settings.property.PropertyWidget;
 import org.eclipse.che.ide.ext.java.client.settings.property.PropertyWidgetImpl;
@@ -50,6 +51,7 @@ public class JavaGinModule extends AbstractGinModule {
         bind(QuickDocumentation.class).to(QuickDocPresenter.class).in(Singleton.class);
         bind(JavaNavigationService.class).to(JavaNavigationServiceImpl.class);
         bind(JavaClasspathServiceClient.class).to(JavaClasspathServiceClientImpl.class);
+        bind(JavaRefactoringRename.class);
 
         install(new GinFactoryModuleBuilder().build(JavaNodeFactory.class));
         install(new GinFactoryModuleBuilder().implement(PropertyWidget.class, PropertyWidgetImpl.class)

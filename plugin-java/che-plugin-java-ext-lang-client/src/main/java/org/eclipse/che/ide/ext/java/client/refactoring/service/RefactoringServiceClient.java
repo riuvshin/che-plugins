@@ -15,10 +15,13 @@ import com.google.inject.ImplementedBy;
 import org.eclipse.che.api.promises.client.Promise;
 import org.eclipse.che.ide.ext.java.shared.dto.refactoring.ChangeCreationResult;
 import org.eclipse.che.ide.ext.java.shared.dto.refactoring.CreateMoveRefactoring;
+import org.eclipse.che.ide.ext.java.shared.dto.refactoring.CreateRenameRefactoring;
+import org.eclipse.che.ide.ext.java.shared.dto.refactoring.LinkedRenameRefactoringApply;
 import org.eclipse.che.ide.ext.java.shared.dto.refactoring.MoveSettings;
 import org.eclipse.che.ide.ext.java.shared.dto.refactoring.RefactoringPreview;
 import org.eclipse.che.ide.ext.java.shared.dto.refactoring.RefactoringSession;
 import org.eclipse.che.ide.ext.java.shared.dto.refactoring.RefactoringStatus;
+import org.eclipse.che.ide.ext.java.shared.dto.refactoring.RenameRefactoringSession;
 import org.eclipse.che.ide.ext.java.shared.dto.refactoring.ReorgDestination;
 
 /**
@@ -37,6 +40,10 @@ public interface RefactoringServiceClient {
      * @return an instance of refactoring session id
      */
     Promise<String> createMoveRefactoring(CreateMoveRefactoring moveRefactoring);
+
+    Promise<RenameRefactoringSession> createRenameRefactoring(CreateRenameRefactoring createRenameRefactoring);
+
+    Promise<RefactoringStatus> applyLinkedModeRename(LinkedRenameRefactoringApply refactoringApply);
 
     Promise<RefactoringStatus> setDestination(ReorgDestination destination);
 
