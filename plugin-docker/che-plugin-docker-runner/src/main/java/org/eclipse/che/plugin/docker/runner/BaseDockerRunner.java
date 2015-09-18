@@ -46,6 +46,7 @@ import org.eclipse.che.plugin.docker.client.DockerConnector;
 import org.eclipse.che.plugin.docker.client.DockerException;
 import org.eclipse.che.plugin.docker.client.DockerFileException;
 import org.eclipse.che.plugin.docker.client.DockerImage;
+import org.eclipse.che.plugin.docker.client.DockerOOMDetector;
 import org.eclipse.che.plugin.docker.client.Dockerfile;
 import org.eclipse.che.plugin.docker.client.ProgressLineFormatterImpl;
 import org.eclipse.che.plugin.docker.client.ProgressMonitor;
@@ -152,6 +153,7 @@ public abstract class BaseDockerRunner extends Runner {
     private final Set<String>               watchUpdateProjectTypes;
     private final ProjectEventService       projectEventService;
     private final DockerConnector           dockerConnector;
+    private final DockerOOMDetector         oomDetector;
 
     /**
      * Allow to hash with sha-1
@@ -166,13 +168,15 @@ public abstract class BaseDockerRunner extends Runner {
                                CustomPortService portService,
                                DockerConnector dockerConnector,
                                EventService eventService,
-                               ApplicationLinksGenerator applicationLinksGenerator) {
+                               ApplicationLinksGenerator applicationLinksGenerator,
+                               DockerOOMDetector oomDetector) {
         super(deployDirectoryRoot, cleanupDelay, allocators, eventService);
         this.hostName = hostName;
         this.watchUpdateProjectTypes = watchUpdateProjectTypes;
         this.portService = portService;
         this.applicationLinksGenerator = applicationLinksGenerator;
         this.dockerConnector = dockerConnector;
+        this.oomDetector = oomDetector;
         projectEventService = new ProjectEventService(eventService);
     }
 
@@ -319,15 +323,30 @@ public abstract class BaseDockerRunner extends Runner {
                         unpackedApplication = unpackArchive(application, workDir, applicationFilename + "_unpack");
                     }
                 }
-                hostConfig.setBinds(new String[]{String.format("%s:%s", unpackedApplication.getAbsolutePath(), applicationBindDir)});
+
+                // On Windows binding directory needs to follow URL convention with first / and no colon :
+                // instead of C:\\Users\\user it needs to be /c/Users/user (note as well the lowercase c at first)
+                // Details on https://github.com/boot2docker/boot2docker/blob/master/README.md#virtualbox-guest-additions
+                String bindingDir;
+                if (org.eclipse.che.api.core.util.SystemInfo.isWindows()) {
+                    bindingDir =  unpackedApplication.getAbsolutePath().replace(":", "").replace('\\', '/');
+                    bindingDir = "/" + Character.toLowerCase(bindingDir.charAt(0)) + bindingDir.substring(1);
+                } else {
+                    bindingDir = unpackedApplication.getAbsolutePath();
+                }
+
+                hostConfig.setBinds(new String[]{String.format("%s:%s", bindingDir, applicationBindDir)});
                 if (watchUpdateProjectTypes.contains(projectDescriptor.getType())) {
                     updaterHolder.set(new ApplicationUpdater(unpackedApplication, projectDescriptor.getPath(),
                                                              projectDescriptor.getBaseUrl(), request.getUserToken(), getExecutor()));
                 }
             }
             final ContainerConfig containerConfig = new ContainerConfig().withImage(imageIdentifier.id)
-                                                                         .withMemory((long)runnerCfg.getMemory() * 1024 * 1024)
-                                                                         .withCpuShares(1)
+                                                                         .withHostConfig(new HostConfig()
+                                                                                                 .withMemory(Long.toString(
+                                                                                                         (long)runnerCfg.getMemory() *
+                                                                                                         1024 * 1024))
+                                                                                                 .withCpuShares(1))
                                                                          .withEnv(env.toArray(new String[env.size()]));
             // Listens start and stop.
             final ApplicationProcess.Callback callback = new ApplicationProcess.Callback() {
@@ -878,7 +897,8 @@ public abstract class BaseDockerRunner extends Runner {
             if (started.compareAndSet(false, true)) {
                 try {
                     final ContainerCreated response = dockerConnector.createContainer(containerCfg, null);
-                    dockerConnector.startContainer(response.getId(), hostCfg, new LogMessagePrinter(logsPublisher));
+                    dockerConnector.startContainer(response.getId(), hostCfg);
+                    oomDetector.startDetection(response.getId(), new LogMessagePrinter(logsPublisher));
                     container = response.getId();
                     LOG.info("EVENT#configure-docker-started# WS#{}# USER#{}# ID#{}#", request.getWorkspace(), request.getUserId(),
                              container);
@@ -913,6 +933,7 @@ public abstract class BaseDockerRunner extends Runner {
         public void stop() throws RunnerException {
             if (started.get()) {
                 try {
+                    oomDetector.stopDetection(container);
                     dockerConnector.stopContainer(container, 3, TimeUnit.SECONDS);
                     LOG.info("EVENT#configure-docker-finished# WS#{}# USER#{}# ID#{}#", request.getWorkspace(), request.getUserId(),
                              container);

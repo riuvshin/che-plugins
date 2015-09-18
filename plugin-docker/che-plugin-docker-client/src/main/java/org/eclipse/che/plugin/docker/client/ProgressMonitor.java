@@ -13,7 +13,10 @@ package org.eclipse.che.plugin.docker.client;
 import org.eclipse.che.plugin.docker.client.json.ProgressStatus;
 
 /**
+ * Receives updated progress statuses to be able to show user beatified progress info.
+ *
  * @author andrew00x
+ * @author Alexander Garagatyi
  */
 public interface ProgressMonitor {
     void updateProgress(ProgressStatus currentProgressStatus);
